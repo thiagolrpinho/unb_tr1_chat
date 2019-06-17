@@ -14,5 +14,6 @@ udp.bind(orig)     # Bind the socket to address
 
 while True:
   msg, cliente = udp.recvfrom(1024)
+  msg = msg.decode("utf8")
   print(cliente, msg)
 udp.close()
