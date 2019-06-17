@@ -29,12 +29,12 @@ def start_server_tcp():
 
   while True:
     con, cliente = socket_tcp.accept()
-    print("Conectado por" + cliente)
+    print("Conectado a " + str(cliente[0]) + ':' + str(cliente[1]))
 
     while True:
-      bytes_recebidos, cliente = con.recvfrom(1024) # Retorna o buffer e o endereço IP de origem
+      bytes_recebidos = con.recv(1024) # Retorna o buffer e o endereço IP de origem
       mensagem_recebida = bytes_recebidos.decode("utf8") 
-      print(cliente, mensagem_recebida)
+      print(mensagem_recebida)
     print("Finalizando")
     con.close()
 

@@ -19,4 +19,16 @@ def start_cliente_udp():
     mensagem_a_enviar = input()
   socket_udp.close
 
-start_cliente_udp()
+def start_cliente_tcp():
+  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  endereco_de_destino = (HOST, PORT)
+  socket_tcp.connect(endereco_de_destino)
+  print("Para sair envie uma mensagem com um espaço em branco")
+  mensagem_a_enviar = input()
+  while mensagem_a_enviar != ' ':
+    socket_tcp.send(bytes(mensagem_a_enviar, 'utf8'))
+    mensagem_a_enviar = input()
+  socket_tcp.close
+
+start_cliente_tcp()
+#start_cliente_udp()
