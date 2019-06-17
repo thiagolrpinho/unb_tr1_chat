@@ -28,7 +28,7 @@ def start_cliente_tcp():
   while mensagem_a_enviar != ' ':
     socket_tcp.send(bytes(mensagem_a_enviar, 'utf8'))
     mensagem_a_enviar = input()
-  socket_tcp.close
+  socket_tcp.close()
 
 start_cliente_tcp()
 #start_cliente_udp()

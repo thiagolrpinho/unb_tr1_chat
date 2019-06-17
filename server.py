@@ -37,6 +37,7 @@ def start_server_tcp():
       print(mensagem_recebida)
     print("Finalizando")
     con.close()
+  socket_tcp.close()
 
 start_server_tcp()
 #start_server_udp()
