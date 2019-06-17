@@ -10,4 +10,9 @@ PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
 
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 orig = (HOST, PORT)
-udp.bind(orig)     # Bind the socket to address.
+udp.bind(orig)     # Bind the socket to address
+
+while True:
+  msg, cliente = udp.recvfrom(1024)
+  print cliente, msg 
+udp.close()
