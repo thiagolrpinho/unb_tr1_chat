@@ -4,6 +4,7 @@
 
 # Nesse módulo será desenvolvido o client udp
 import socket
+from threading import Thread
 
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP    # ENDEREÇO IP SERVIDOR
@@ -30,5 +31,27 @@ def start_cliente_tcp():
     mensagem_a_enviar = input()
   socket_tcp.close()
 
-start_cliente_tcp()
+def receive_message(conexao_chat_server):
+  while True:
+    mensagem = conexao_chat_server.recv(1024).decode("utf8")
+    print(mensagem)
+
+def send_message(mensagem_a_enviar, conexao_chat_server, evento = None):
+  conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
+  if mensagem_a_enviar == " ":
+      conexao_chat_server.close()
+
+
+def start_chat_user():
+  conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  endereco_de_destino = (HOST, PORT)
+  conexao_chat_server.connect(endereco_de_destino)
+  receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+  receive_thread.start()
+  mensagem_a_enviar = input()
+  while mensagem_a_enviar != ' ':
+    send_message(mensagem_a_enviar, conexao_chat_server)
+    mensagem_a_enviar = input()
+
+start_chat_user()
 #start_cliente_udp()
