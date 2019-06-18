@@ -3,6 +3,8 @@
 # O Objetivo do projeto é criar um chat multi-servidores com diversos usuários
 
 import socket
+import _thread
+
 # É uma biblioteca python voltada para a interface de soquetes(TCP/UDP).
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP # ENDEREÇO IP DO HOST
@@ -19,6 +21,17 @@ def start_server_udp():
     mensagem_recebida = bytes_recebidos.decode("utf8") 
     print(cliente, mensagem_recebida)
   socket_udp.close()
+
+def conecta_cliente(con, cliente):
+  print("Conectado a " + str(cliente[0]) + ':' + str(cliente[1]))
+
+  while True:
+    bytes_recebidos = con.recv(1024) # Retorna o buffer e o endereço IP de origem
+    mensagem_recebida = bytes_recebidos.decode("utf8") 
+    print(mensagem_recebida)
+  print("Finalizando")
+  con.close()
+  _thread.exit()
 
 def start_server_tcp():
   socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,5 +52,17 @@ def start_server_tcp():
     con.close()
   socket_tcp.close()
 
-start_server_tcp()
+def start_chat_server():
+  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  endereco_para_escutar = (HOST, PORT)
+  socket_tcp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
+  print("Servidor online: Escutando mensagens")
+  socket_tcp.listen(5)
+
+  while True:
+    con, cliente = socket_tcp.accept()
+    _thread.start_new_thread(conecta_cliente, tuple([con,cliente]))
+  socket_tcp.close()
+start_chat_server()
+#start_server_tcp()
 #start_server_udp()
