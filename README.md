@@ -1,11 +1,15 @@
 # Teleinformática e Redes I 
-## Projeto Final - Chat Multi-sercidores e com múltiplas salas
+## Projeto Final - Chat Multi-servidores e com múltiplas salas
 
 ### Membros:
-Yan Galli - 16/0149207
-Antonio Carlos - 16/0112745
-Thiago Pinho - 15/0065205
-Tiago Valadares - 14/0164120
+Yan Galli - 16/0149207 
+
+Antonio Carlos - 16/0112745 
+
+Thiago Pinho - 15/0065205 
+
+Tiago Valadares - 14/0164120 
+
 Vinícius Gomes - 15/0047941
 
 ### Bibliotecas Necessárias
@@ -15,6 +19,7 @@ threading - Utilizada para manter múltiplos algoritmos funcionando concorrentes
 ### Testando
 Primeiro inicialize o server com:
 _python server.py_
+
 Depois inicialize um ou mais clientes com:
 _python client.py_
 
