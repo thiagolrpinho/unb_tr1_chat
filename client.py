@@ -33,25 +33,29 @@ def start_cliente_tcp():
 
 def receive_message(conexao_chat_server):
   while True:
-    mensagem = conexao_chat_server.recv(1024).decode("utf8")
+    try: mensagem = conexao_chat_server.recv(1024).decode("utf8")
+    except OSError: break
     print(mensagem)
 
 def send_message(mensagem_a_enviar, conexao_chat_server, evento = None):
   conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
-  if mensagem_a_enviar == " ":
-      conexao_chat_server.close()
 
 
 def start_chat_user():
   conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  # Soquete TCP
   endereco_de_destino = (HOST, PORT)
+  # Tenta criar uma conexão com o servidor de destino
   conexao_chat_server.connect(endereco_de_destino)
   receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
   receive_thread.start()
   mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
+  while mensagem_a_enviar != '{quit}':
     send_message(mensagem_a_enviar, conexao_chat_server)
     mensagem_a_enviar = input()
+  # Manda uma informando para o server que irá fechar a conexão
+  send_message(mensagem_a_enviar, conexao_chat_server)
+  conexao_chat_server.close()
 
 start_chat_user()
 #start_cliente_udp()

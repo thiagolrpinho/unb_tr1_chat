@@ -2,16 +2,17 @@
 # da Universidade de Brasília
 # O Objetivo do projeto é criar um chat multi-servidores com diversos usuários
 
+# É uma biblioteca python voltada para a interface de soquetes(TCP/UDP).
 import socket
 from threading import Thread
 
-# É uma biblioteca python voltada para a interface de soquetes(TCP/UDP).
 LOCAL_IP = '127.0.0.1'
-HOST = LOCAL_IP # ENDEREÇO IP DO HOST
+HOST = LOCAL_IP  # ENDEREÇO IP DO HOST
 PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
 
 def start_server_udp():
-  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  ## Envelopa todo o protocolo de rede
+  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # udp
   endereco_para_escutar = (HOST, PORT)
   socket_udp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
   print("Servidor online: Escutando mensagens")
@@ -23,7 +24,7 @@ def start_server_udp():
   socket_udp.close()
 
 def start_server_tcp():
-  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # tcp
   endereco_para_escutar = (HOST, PORT)
   socket_tcp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
   print("Servidor online: Escutando mensagens")
@@ -47,17 +48,18 @@ def conexao_usuario(chat_server, usuarios, usuario):
   welcome = 'Para sair digite espaço em branco e aperte enter'
   usuario.send(bytes(welcome, "utf8"))
   mensagem = "%s se juntou ao chat" % nickname
+  print(usuarios)
   broadcast(usuarios, bytes(mensagem, "utf8"))
   usuarios[usuario] = nickname
-
-  while mensagem != ' ':
-    bytes_recebidos = usuario.recv(1024) # Retorna o buffer e o endereço IP de origem
+  bytes_recebidos = usuario.recv(1024)
+  while str(bytes_recebidos, encoding='utf8') != '{quit}':
+    print(str(bytes_recebidos, encoding='utf8'))
     broadcast(usuarios, bytes_recebidos, usuarios[usuario])
+    bytes_recebidos = usuario.recv(1024) # Retorna o buffer e o endereço IP de origem
 
-  usuario.send(bytes("{quit}", "utf8"))
   usuario.close()
   del usuarios[usuario]
-  broadcast(usuarios, bytes("%s arregou." % nickname, "utf8"))
+  broadcast(usuarios, bytes("%s está sem tempo, irmão." % nickname, "utf8"))
 
 def recebe_usuario(chat_server, usuarios):
   enderecos = dict()
@@ -69,7 +71,7 @@ def recebe_usuario(chat_server, usuarios):
     enderecos[usuario] = endereco_usuario
     Thread(target=conexao_usuario, args=(chat_server, usuarios, usuario)).start()
 
-def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor:"):
+def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor "):
   if usuarios:
     for socket in usuarios: 
       socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
@@ -79,7 +81,7 @@ def start_chat_server():
   endereco_para_escutar = (HOST, PORT)
   chat_server.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
   print("Servidor online: Escutando mensagens")
-  chat_server.listen(5)
+  chat_server.listen(5)  ## escuta no máximo 5 conexões
   usuarios = dict()
 
   ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
