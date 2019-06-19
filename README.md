@@ -1,5 +1,5 @@
 # Teleinformática e Redes I 
-## Projeto Final - Chat Multi-sercidores e com múltiplas salas
+## Projeto Final - Chat Multi-servidores e com múltiplas salas
 
 ### Membros:
 Yan Galli - 16/0149207
