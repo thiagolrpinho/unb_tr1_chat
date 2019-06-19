@@ -45,10 +45,9 @@ def start_server_tcp():
 def conexao_usuario(chat_server, usuarios, usuario):
   
   nickname = usuario.recv(1024).decode("utf8")
-  welcome = 'Para sair digite espaço em branco e aperte enter'
+  welcome = 'Para sair digite {quit} e aperte enter'
   usuario.send(bytes(welcome, "utf8"))
   mensagem = "%s se juntou ao chat" % nickname
-  print(usuarios)
   broadcast(usuarios, bytes(mensagem, "utf8"))
   usuarios[usuario] = nickname
   bytes_recebidos = usuario.recv(1024)
