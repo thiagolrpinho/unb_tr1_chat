@@ -10,6 +10,7 @@ LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP  # ENDEREÇO IP DO HOST
 PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
 BUFF_SIZE = 1024
+MAX_USERS = 5
 
 def start_server_udp():
   ## Envelopa todo o protocolo de rede
@@ -81,7 +82,7 @@ def start_chat_server():
   endereco_para_escutar = (HOST, PORT)
   chat_server.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
   print("Servidor online: Escutando mensagens")
-  chat_server.listen(5)  ## escuta no máximo 5 conexões
+  chat_server.listen(MAX_USERS)  ## escuta no máximo 5 conexões
   usuarios = dict()
 
   ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
