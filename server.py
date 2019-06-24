@@ -9,6 +9,7 @@ from threading import Thread
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP  # ENDEREÇO IP DO HOST
 PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
+BUFF_SIZE = 1024
 
 def start_server_udp():
   ## Envelopa todo o protocolo de rede
@@ -18,8 +19,8 @@ def start_server_udp():
   print("Servidor online: Escutando mensagens")
 
   while True:
-    bytes_recebidos, cliente = socket_udp.recvfrom(1024) # Retorna o buffer e o endereço IP de origem
-    mensagem_recebida = bytes_recebidos.decode("utf8") 
+    bytes_recebidos, cliente = socket_udp.recvfrom(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
+    mensagem_recebida = bytes_recebidos.decode("utf8")
     print(cliente, mensagem_recebida)
   socket_udp.close()
 
@@ -35,26 +36,26 @@ def start_server_tcp():
     print("Conectado a " + str(cliente[0]) + ':' + str(cliente[1]))
 
     while True:
-      bytes_recebidos = con.recv(1024) # Retorna o buffer e o endereço IP de origem
-      mensagem_recebida = bytes_recebidos.decode("utf8") 
+      bytes_recebidos = con.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
+      mensagem_recebida = bytes_recebidos.decode("utf8")
       print(mensagem_recebida)
     print("Finalizando")
     con.close()
   socket_tcp.close()
 
 def conexao_usuario(chat_server, usuarios, usuario):
-  
-  nickname = usuario.recv(1024).decode("utf8")
+
+  nickname = usuario.recv(BUFF_SIZE).decode("utf8")
   welcome = 'Para sair digite {quit} e aperte enter'
   usuario.send(bytes(welcome, "utf8"))
   mensagem = "%s se juntou ao chat" % nickname
   broadcast(usuarios, bytes(mensagem, "utf8"))
   usuarios[usuario] = nickname
-  bytes_recebidos = usuario.recv(1024)
+  bytes_recebidos = usuario.recv(BUFF_SIZE)
   while str(bytes_recebidos, encoding='utf8') != '{quit}':
     print(str(bytes_recebidos, encoding='utf8'))
     broadcast(usuarios, bytes_recebidos, usuarios[usuario])
-    bytes_recebidos = usuario.recv(1024) # Retorna o buffer e o endereço IP de origem
+    bytes_recebidos = usuario.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
 
   usuario.close()
   del usuarios[usuario]
@@ -72,7 +73,7 @@ def recebe_usuario(chat_server, usuarios):
 
 def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor "):
   if usuarios:
-    for socket in usuarios: 
+    for socket in usuarios:
       socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
 
 def start_chat_server():
