@@ -85,7 +85,7 @@ def start_chat_server():
   chat_server.listen(MAX_USERS)  ## escuta no máximo 5 conexões
   usuarios = dict()
 
-  ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
+  ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios))
   ACCEPT_THREAD.start()
   ACCEPT_THREAD.join()
   chat_server.close()
