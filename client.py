@@ -70,7 +70,7 @@ def start_chat_user_with_multi_servers():
       receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
       receive_thread.start()
     except ConnectionRefusedError: 
-      print(f'Problema ao se reconectar ao {endereco_de_destino}')
+      print(f'Problema ao se conectar ao {endereco_de_destino}')
 
   # Comunica-se com os servidores e consequentemente os outros usuários
   mensagem_a_enviar = input()

@@ -110,7 +110,7 @@ def start_chat_multi_server():
   
   servidores[0].set_primario(True)
   servidores[0].espera_thread()
-  print("Xabláu!")
+  
   
 
 
@@ -128,11 +128,17 @@ class SERVIDOR():
     self.salas_de_usuarios = salas_de_usuarios # Uma lista de hashs com o nickname e o soquete de cada usuário
     
     self.soquete_da_porta = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Cria um objeto para encapsular o protocolo TCP
-    self.soquete_da_porta.bind(endereco_da_porta)     # Esse soquete estará ligado a esse endereço
+    PORTA_LIVRE = False
+    while not PORTA_LIVRE:
+      try: 
+        self.soquete_da_porta.bind(endereco_da_porta)     # Esse soquete estará ligado a esse endereço
+        PORTA_LIVRE = True
+      except OSError as e:
+        print(f"Porta em uso: {e}")   
     self.soquete_da_porta.listen(numero_de_usuarios_maximo)  ## escuta no máximo esse número de conexões
 
     # Cria uma thread com a função recebe_usuario e essa fica em um loop infinito recebendo usuários
-    self.thread = Thread(target=recebe_usuario, args=(self.soquete_da_porta, salas_de_usuarios,))
+    self.thread = Thread(target=self.servidor_online, args=(self.soquete_da_porta, salas_de_usuarios,))
     self.thread.start()
 
   def __del__(self):
@@ -152,7 +158,41 @@ class SERVIDOR():
     ''' Retorna se o servidor é ou não primário'''
     return self.primario
 
-    
+  def servidor_online(self, chat_server, usuarios):
+    enderecos = dict()
+    while True:
+      usuario, endereco_usuario = chat_server.accept()
+      if self.primario:
+        print("Conectado como primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
+        usuario.send(bytes("Bem-vindo! "+
+                          "Escreva seu nome e aperte enter!", "utf8"))
+        enderecos[usuario] = endereco_usuario
+        nickname = usuario.recv(1024).decode("utf8")
+        welcome = 'Para sair digite {quit} e aperte enter'
+        usuario.send(bytes(welcome, "utf8"))
+        mensagem = "%s se juntou ao chat" % nickname
+        broadcast(usuarios, bytes(mensagem, "utf8"))
+        usuarios[usuario] = nickname
+        Thread(target=self.conexao_usuario, args=(chat_server, usuarios, usuario)).start()
+      else:
+        Thread(target=self.conexao_usuario, args=(chat_server, usuarios, usuario)).start()
+  
+  def conexao_usuario(self, chat_server, usuarios, usuario):
+    bytes_recebidos = usuario.recv(1024)
+    while str(bytes_recebidos, encoding='utf8') != '{quit}':
+      print(str(bytes_recebidos, encoding='utf8'))
+      broadcast(usuarios, bytes_recebidos, usuarios[usuario])
+      bytes_recebidos = usuario.recv(1024) # Retorna o buffer e o endereço IP de origem
+
+    usuario.close()
+    try:  # CORRIGIR FATO DOS SERVIDORES ESTAREM COMPARTILHANDO VARIAVEL GLOBAL(NÃO POSSÍVEL EM SERVIDORES EM MÁQUINAS DIFERENTES)
+      broadcast(usuarios, bytes("%s está sem tempo, irmão." % usuarios[usuario], "utf8"))
+      del usuarios[usuario]
+    except:
+      pass
+
+        
+      
 
 
 start_chat_multi_server()
