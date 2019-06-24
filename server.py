@@ -97,7 +97,27 @@ def start_chat_server():
     chat_server.close()
     pass
 
+def start_chat_multi_server():
+  chat_server_multi_server =[ socket.socket(socket.AF_INET, socket.SOCK_STREAM), socket.socket(socket.AF_INET, socket.SOCK_STREAM) ]
+  enderecos_para_escutar = [(HOST, PORT), (HOST, PORT+1)]
+  chat_server_multi_server[0].bind(enderecos_para_escutar[0])     # Esse socket estará ligado a esse endereço
+  print("Servidor online 1: Escutando mensagens")
+  chat_server_multi_server[1].bind(enderecos_para_escutar[1])     # Esse socket estará ligado a esse endereço
+  print("Servidor online 2: Escutando mensagens")
+  chat_server_multi_server[0].listen(5)  ## escuta no máximo 5 conexões
+  chat_server_multi_server[1].listen(5)  ## escuta no máximo 5 conexões
 
-start_chat_server()
+  usuarios = dict()
+
+  for chat_server in chat_server_multi_server:
+    ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
+    ACCEPT_THREAD.start()
+  
+  ACCEPT_THREAD.join()
+  chat_server.close()
+
+
+start_chat_multi_server()
+#start_chat_server()
 #start_server_tcp()
 #start_server_udp()
