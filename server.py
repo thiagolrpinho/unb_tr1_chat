@@ -106,7 +106,7 @@ def start_chat_multi_server():
   enderecos_para_escutar = [ (HOST, PORT), (HOST, PORT + 1)]
   usuarios = dict()
   for endereco in enderecos_para_escutar:
-    servidores.append(SERVIDOR(endereco, usuarios, False))
+    servidores.append(SERVIDOR(endereco, usuarios))
   
   servidores[0].set_primario(True)
   servidores[0].espera_thread()
@@ -121,7 +121,9 @@ class SERVIDOR():
   dos nicknames e suas respectivas salas do servidor primário. Quando um servidor não primário
   recebe uma mensagem de um usuário, isso significa que o primário caiu e agora ele passa a ser
   o primário. '''
-  def __init__(self, endereco_da_porta, salas_de_usuarios, primario = True, numero_de_usuarios_maximo = 5 ):
+  def __init__(self, endereco_da_porta, salas_de_usuarios, primario = False, numero_de_usuarios_maximo = 5 ):
+    ''' Construtor precisa obrigatoriamente do endereco e das salas. Ele também pode ser configurado para ser ou não primário.
+    E o número máximo de usuário desejado'''
     self.primario = primario # Somente o primário recebe mensagens e dá broadcast
     self.salas_de_usuarios = salas_de_usuarios # Uma lista de hashs com o nickname e o soquete de cada usuário
     
@@ -134,15 +136,20 @@ class SERVIDOR():
     self.thread.start()
 
   def __del__(self):
+    ''' Destrutor '''
     self.soquete_da_porta.close() 
 
   def espera_thread(self):
+    ''' Faz com que o servidor em questão segure o andamento do código até essa 
+    thread acabar '''
     self.thread.join()
   
   def set_primario(self, primario = True):
+    ''' Muda o estado para primário verdadeiro ou para o argumento passado no parâmetro'''
     self.primario = primario
 
   def is_primario(self):
+    ''' Retorna se o servidor é ou não primário'''
     return self.primario
 
     
