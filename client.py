@@ -58,5 +58,29 @@ def start_chat_user():
   send_message(mensagem_a_enviar, conexao_chat_server)
   conexao_chat_server.close()
 
-start_chat_user()
+def start_chat_user_with_multi_servers():
+  conexoes_chat_servers = [ socket.socket(socket.AF_INET, socket.SOCK_STREAM), socket.socket(socket.AF_INET, socket.SOCK_STREAM) ]
+  # Soquete TCP
+  endereco_de_destino = [ (HOST, PORT), (HOST, PORT + 1)]
+
+  # Tenta criar uma conexão com o servidor de destino
+  for i,conexao_chat_server in enumerate(conexoes_chat_servers):  
+    try: conexao_chat_server.connect(endereco_de_destino[i])
+    except ConnectionRefusedError: 
+      print(f'Problem connecting to {endereco_de_destino}')
+    receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+    receive_thread.start()
+
+  mensagem_a_enviar = input()
+  while mensagem_a_enviar != '{quit}':
+    send_message( mensagem_a_enviar, conexoes_chat_servers[0] )
+    mensagem_a_enviar = input()
+  
+  # Manda uma informando para o server que irá fechar a conexão
+  send_message( mensagem_a_enviar, conexoes_chat_servers[0] )
+  for conexao_chat_server in conexoes_chat_servers:  
+    conexao_chat_server.close()
+
+start_chat_user_with_multi_servers()
+#start_chat_user()
 #start_cliente_udp()
