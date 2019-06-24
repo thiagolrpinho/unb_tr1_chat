@@ -82,6 +82,8 @@ def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor "):
       try : socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
       except BrokenPipeError: 
           socket.close()
+      except OSError:
+          socket.close()
 
 def start_chat_server():
   try:
