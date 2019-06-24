@@ -60,10 +60,10 @@ def start_chat_user():
 
 def start_chat_user_with_multi_servers():
   conexoes_chat_servers = [ socket.socket(socket.AF_INET, socket.SOCK_STREAM), socket.socket(socket.AF_INET, socket.SOCK_STREAM) ]
-  # Soquete TCP
+  # Soquetes TCP
   endereco_de_destino = [ (HOST, PORT), (HOST, PORT + 1)]
 
-  # Tenta criar uma conexão com o servidor de destino
+  # Tenta criar uma conexão com os servidores de destino
   for i,conexao_chat_server in enumerate(conexoes_chat_servers):  
     try: conexao_chat_server.connect(endereco_de_destino[i])
     except ConnectionRefusedError: 
