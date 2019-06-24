@@ -65,21 +65,27 @@ def start_chat_user_with_multi_servers():
 
   # Tenta criar uma conexão com os servidores de destino
   for i,conexao_chat_server in enumerate(conexoes_chat_servers):  
-    try: conexao_chat_server.connect(endereco_de_destino[i])
+    try: 
+      conexao_chat_server.connect(endereco_de_destino[i])
+      receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+      receive_thread.start()
     except ConnectionRefusedError: 
-      print(f'Problem connecting to {endereco_de_destino}')
-    receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
-    receive_thread.start()
+      print(f'Problema ao se reconectar ao {endereco_de_destino}')
 
+  # Comunica-se com os servidores e consequentemente os outros usuários
   mensagem_a_enviar = input()
   while mensagem_a_enviar != '{quit}':
-    send_message( mensagem_a_enviar, conexoes_chat_servers[0] )
+    try:
+      send_message( mensagem_a_enviar, conexoes_chat_servers[0] )
+    except BrokenPipeError:
+      send_message( mensagem_a_enviar, conexoes_chat_servers[1] )  
     mensagem_a_enviar = input()
   
-  # Manda uma informando para o server que irá fechar a conexão
-  send_message( mensagem_a_enviar, conexoes_chat_servers[0] )
+  # Informando para os servidores que irá fechar a conexão
   for conexao_chat_server in conexoes_chat_servers:  
+    send_message( mensagem_a_enviar, conexao_chat_server )
     conexao_chat_server.close()
+  print(f'Desconectado com sucesso')
 
 start_chat_user_with_multi_servers()
 #start_chat_user()
