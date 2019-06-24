@@ -102,23 +102,50 @@ def start_chat_server():
     pass
 
 def start_chat_multi_server():
-  chat_server_multi_server =[ socket.socket(socket.AF_INET, socket.SOCK_STREAM), socket.socket(socket.AF_INET, socket.SOCK_STREAM) ]
-  enderecos_para_escutar = [(HOST, PORT), (HOST, PORT+1)]
-  chat_server_multi_server[0].bind(enderecos_para_escutar[0])     # Esse socket estará ligado a esse endereço
-  print("Servidor online 1: Escutando mensagens")
-  chat_server_multi_server[1].bind(enderecos_para_escutar[1])     # Esse socket estará ligado a esse endereço
-  print("Servidor online 2: Escutando mensagens")
-  chat_server_multi_server[0].listen(5)  ## escuta no máximo 5 conexões
-  chat_server_multi_server[1].listen(5)  ## escuta no máximo 5 conexões
-
+  servidores = []
+  enderecos_para_escutar = [ (HOST, PORT), (HOST, PORT + 1)]
   usuarios = dict()
-
-  for chat_server in chat_server_multi_server:
-    ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
-    ACCEPT_THREAD.start()
+  for endereco in enderecos_para_escutar:
+    servidores.append(SERVIDOR(endereco, usuarios, False))
   
-  ACCEPT_THREAD.join()
-  chat_server.close()
+  servidores[0].set_primario(True)
+  servidores[0].espera_thread()
+  print("Xabláu!")
+  
+
+
+class SERVIDOR():
+  ''' Essa classe descreve o comportamento e armazena as variáveis relacionados ao 
+  servidor do chat, ele pode ser primário ou não. O sevidor primário recebe as mensagens
+  dos usuários e transmite de volta. Os servidores não primários apenas recebem informação
+  dos nicknames e suas respectivas salas do servidor primário. Quando um servidor não primário
+  recebe uma mensagem de um usuário, isso significa que o primário caiu e agora ele passa a ser
+  o primário. '''
+  def __init__(self, endereco_da_porta, salas_de_usuarios, primario = True, numero_de_usuarios_maximo = 5 ):
+    self.primario = primario # Somente o primário recebe mensagens e dá broadcast
+    self.salas_de_usuarios = salas_de_usuarios # Uma lista de hashs com o nickname e o soquete de cada usuário
+    
+    self.soquete_da_porta = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Cria um objeto para encapsular o protocolo TCP
+    self.soquete_da_porta.bind(endereco_da_porta)     # Esse soquete estará ligado a esse endereço
+    self.soquete_da_porta.listen(numero_de_usuarios_maximo)  ## escuta no máximo esse número de conexões
+
+    # Cria uma thread com a função recebe_usuario e essa fica em um loop infinito recebendo usuários
+    self.thread = Thread(target=recebe_usuario, args=(self.soquete_da_porta, salas_de_usuarios,))
+    self.thread.start()
+
+  def __del__(self):
+    self.soquete_da_porta.close() 
+
+  def espera_thread(self):
+    self.thread.join()
+  
+  def set_primario(self, primario = True):
+    self.primario = primario
+
+  def is_primario(self):
+    return self.primario
+
+    
 
 
 start_chat_multi_server()
