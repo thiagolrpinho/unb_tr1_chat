@@ -108,11 +108,13 @@ def start_chat_multi_server():
   for endereco in enderecos_para_escutar:
     servidores.append(SERVIDOR(endereco, usuarios))
   
+  # Primeiro nós configuramos qual servidor será o primário
   servidores[0].set_primario(True)
   servidores[0].adiciona_servidor_auxiliar()
+  # Depois pedimos aos servidores auxiliares para se conectarem ao primário
   servidores[1].auxilia_servidor_primario((HOST, PORT))
 
-  print("Que porra")
+  # Depois disso, ligamos os servidores
   for servidor in servidores:
     servidor.set_servidor_online()
 
@@ -177,7 +179,7 @@ class SERVIDOR():
     print(f"Servidor {self} online")
     enderecos = dict()
     if self.primario:
-      self.contagem = 0
+      self.contagem = 1
     else: 
       self.contagem = 3
 
