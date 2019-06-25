@@ -39,38 +39,42 @@ def start_server_tcp():
     while True:
       bytes_recebidos = con.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
       mensagem_recebida = bytes_recebidos.decode("utf8")
-      print(mensagem_recebida)
+      # print(mensagem_recebida)
     print("Finalizando")
     con.close()
   socket_tcp.close()
 
 def conexao_usuario(chat_server, usuarios, usuario):
 
+  usuario.send(bytes("Bem-vindo! " + "Escreva a sala", "utf8"))
+  room = int(usuario.recv(BUFF_SIZE).decode("utf8"))
+  usuario.send(bytes("Bem-vindo! " + "Escreva seu nome e aperte enter!", "utf8"))
   nickname = usuario.recv(BUFF_SIZE).decode("utf8")
   welcome = 'Para sair digite {quit} e aperte enter'
   usuario.send(bytes(welcome, "utf8"))
   mensagem = "%s se juntou ao chat" % nickname
-  broadcast(usuarios, bytes(mensagem, "utf8"))
-  usuarios[usuario] = nickname
+  broadcast(usuarios[room], bytes(mensagem, "utf8"))
+  usuarios[room][usuario] = nickname
   bytes_recebidos = usuario.recv(BUFF_SIZE)
   while str(bytes_recebidos, encoding='utf8') != '{quit}':
-    print(str(bytes_recebidos, encoding='utf8'))
-    broadcast(usuarios, bytes_recebidos, usuarios[usuario])
+    # print(str(bytes_recebidos, encoding='utf8'))
+    broadcast(usuarios[room], bytes_recebidos, usuarios[room][usuario])
     bytes_recebidos = usuario.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
 
   usuario.close()
-  del usuarios[usuario]
-  broadcast(usuarios, bytes("%s está sem tempo, irmão." % nickname, "utf8"))
+  del usuarios[room][usuario]
+  broadcast(usuarios[room], bytes("%s está sem tempo, irmão." % nickname, "utf8"))
 
 def recebe_usuario(chat_server, usuarios):
   enderecos = dict()
-  while True:
-    usuario, endereco_usuario = chat_server.accept()
-    print("Conectado a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
-    usuario.send(bytes("Bem-vindo! "+
-                      "Escreva seu nome e aperte enter!", "utf8"))
-    enderecos[usuario] = endereco_usuario
-    Thread(target=conexao_usuario, args=(chat_server, usuarios, usuario)).start()
+  try:
+    while True:
+      usuario, endereco_usuario = chat_server.accept()
+      print("Conectado a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
+      enderecos[usuario] = endereco_usuario
+      Thread(target=conexao_usuario, args=(chat_server, usuarios, usuario)).start()
+  except KeyboardInterrupt:
+    pass
 
 def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor "):
   if usuarios:
@@ -78,17 +82,20 @@ def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor "):
       socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
 
 def start_chat_server():
-  chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  endereco_para_escutar = (HOST, PORT)
-  chat_server.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
-  print("Servidor online: Escutando mensagens")
-  chat_server.listen(MAX_USERS)  ## escuta no máximo 5 conexões
-  usuarios = dict()
+  try:
+    chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    endereco_para_escutar = (HOST, PORT)
+    chat_server.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
+    print("Servidor online: Escutando mensagens")
+    chat_server.listen(MAX_USERS)  ## escuta no máximo 5 conexões
+    usuarios = [dict() for i in range(MAX_USERS)]
 
-  ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios))
-  ACCEPT_THREAD.start()
-  ACCEPT_THREAD.join()
-  chat_server.close()
+    ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
+    ACCEPT_THREAD.start()
+    ACCEPT_THREAD.join()
+  except KeyboardInterrupt:
+    chat_server.close()
+    pass
 
 
 start_chat_server()
