@@ -109,7 +109,7 @@ def start_chat_multi_server():
     servidores.append(SERVIDOR(endereco, usuarios))
   
   servidores[0].set_primario(True)
-  servidores[0].espera_thread()
+  servidores[1].espera_thread()
   
   
 
@@ -152,6 +152,8 @@ class SERVIDOR():
   
   def set_primario(self, primario = True):
     ''' Muda o estado para primário verdadeiro ou para o argumento passado no parâmetro'''
+    if primario:
+      self.contagem = 0
     self.primario = primario
 
   def is_primario(self):
@@ -159,8 +161,13 @@ class SERVIDOR():
     return self.primario
 
   def servidor_online(self, chat_server, usuarios):
+    ''' Liga o servidor e fica escutando por novas conexões de usuários '''
+    print(f"Servidor {self} online")
     enderecos = dict()
-    while True:
+    self.contagem = 2
+
+    while self.contagem > 0:
+      print(f"{self} Contagem: {self.contagem}")      
       usuario, endereco_usuario = chat_server.accept()
       if self.primario:
         print("Conectado como primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
@@ -175,21 +182,33 @@ class SERVIDOR():
         usuarios[usuario] = nickname
         Thread(target=self.conexao_usuario, args=(chat_server, usuarios, usuario)).start()
       else:
+        print("Conectado como não primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
         Thread(target=self.conexao_usuario, args=(chat_server, usuarios, usuario)).start()
+
+    self.set_primario(False)
+    self.soquete_da_porta.close()
+    print(f"Desligando servidor {self}")
   
   def conexao_usuario(self, chat_server, usuarios, usuario):
+    ''' Conecta o servidor a um usuário, recebendo mensagens desses e dando broadcast para os demais membros da sala'''
     bytes_recebidos = usuario.recv(1024)
     while str(bytes_recebidos, encoding='utf8') != '{quit}':
+      self.set_primario()
       print(str(bytes_recebidos, encoding='utf8'))
       broadcast(usuarios, bytes_recebidos, usuarios[usuario])
-      bytes_recebidos = usuario.recv(1024) # Retorna o buffer e o endereço IP de origem
+      try: 
+        bytes_recebidos = usuario.recv(1024) # Retorna o buffer e o endereço IP de origem
+      except OSError: 
+        break
 
     usuario.close()
+    self.contagem = self.contagem -1
     try:  # CORRIGIR FATO DOS SERVIDORES ESTAREM COMPARTILHANDO VARIAVEL GLOBAL(NÃO POSSÍVEL EM SERVIDORES EM MÁQUINAS DIFERENTES)
       broadcast(usuarios, bytes("%s está sem tempo, irmão." % usuarios[usuario], "utf8"))
       del usuarios[usuario]
     except:
       pass
+
 
         
       
