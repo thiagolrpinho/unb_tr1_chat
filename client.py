@@ -39,12 +39,15 @@ def receive_message(conexao_chat_server):
     print(mensagem)
 
 def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
-  for i, conexao_chat_server in enumerate(conexoes_chat_servers):
-    try:
-      conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
-      break
-    except BrokenPipeError:
-      continue
+  if conexoes_chat_servers:
+    for conexao_chat_server in conexoes_chat_servers:
+      try:
+        conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
+        break
+      except BrokenPipeError:
+        continue
+      except OSError:
+        break
 
 def start_chat_user():
   conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -84,7 +87,7 @@ def start_chat_user_with_multi_servers():
   
   # Informando para os servidores que irá fechar a conexão
   for conexao_chat_server in conexoes_chat_servers:  
-    send_message( mensagem_a_enviar, conexao_chat_server )
+    send_message( mensagem_a_enviar, conexoes_chat_servers )
     conexao_chat_server.close()
   print(f'Desconectado com sucesso')
 
