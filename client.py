@@ -9,6 +9,7 @@ from threading import Thread
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP    # ENDEREÇO IP SERVIDOR
 PORT = 3300        # PORTA DO SERVIDOR(CLIENTE ENVIA)
+BUFF_SIZE = 1024
 
 def start_cliente_udp():
   socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -33,7 +34,7 @@ def start_cliente_tcp():
 
 def receive_message(conexao_chat_server):
   while True:
-    try: mensagem = conexao_chat_server.recv(1024).decode("utf8")
+    try: mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
     except OSError: break
     print(mensagem)
 
