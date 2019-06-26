@@ -203,7 +203,8 @@ class SERVIDOR():
         self.broadcast(bytes(mensagem, "utf8"))
         Thread(target=self.conexao_usuario, args=(usuario,)).start()
       else:
-        print(self + "conectado como não primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
+        print("{} conectado como não primário a ".format(self) +
+              str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
         while not self.buffer_nicknames_salas:
             pass
         nickname = self.buffer_nicknames_salas.pop()
@@ -213,7 +214,7 @@ class SERVIDOR():
     self.set_primario(False)
     self.soquete_da_porta.close()
     self.is_online = False
-    print("Desligando servidor" + self)
+    print("Desligando servidor {}".format(self))
   
   def conexao_usuario(self, usuario):
     ''' Conecta o servidor a um usuário, recebendo mensagens desses e dando broadcast para os demais membros da sala'''
@@ -224,7 +225,7 @@ class SERVIDOR():
       usuario.close()
     while str(bytes_recebidos, encoding='utf8') != '{quit}' and self.is_online:
       self.set_primario()
-      print(self + "recebeu" + str(bytes_recebidos, encoding='utf8') + "de" + usuario)
+      print("recebeu {}".format(self) + str(bytes_recebidos, encoding='utf8') + "de {}".format(usuario))
       try: 
         self.broadcast(bytes_recebidos, self.salas_de_usuarios[usuario])
         bytes_recebidos = usuario.recv(1024)
@@ -246,7 +247,7 @@ class SERVIDOR():
       for socket in self.salas_de_usuarios: 
         try : 
           socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
-          print("Broadcast de" + self + "para" + socket + "do seguinte:" + mensagem_a_transmitir)
+          print("Broadcast de {}".format(self) + "para {}".format(socket) + "do seguinte: {}".format(mensagem_a_transmitir))
         except BrokenPipeError: 
             socket.close()
         except OSError:

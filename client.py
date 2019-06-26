@@ -49,7 +49,7 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
     for conexao_chat_server in conexoes_chat_servers:
       try:
         conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
-        print(f"Mensagem: {mensagem_a_enviar} enviada para {conexao_chat_server}")
+        print("Mensagem: {} enviada para {}".format(mensagem_a_enviar, conexao_chat_server))
         break
       except BrokenPipeError:
         conexoes_chat_servers.remove(conexao_chat_server)
@@ -76,7 +76,7 @@ def start_chat_user():
 def start_chat_user_with_multi_servers():
   conexoes_chat_servers = []
   # Soquetes TCP
-  enderecos_de_destino = [('127.0.0.1', 3602), ('127.0.0.1', 4141)]
+  enderecos_de_destino = [('127.0.0.1', 3677), ('127.0.0.1', 4156)]
 
   # Tenta criar uma conexão com os servidores de destino
   for i,endereco_de_destino in enumerate(enderecos_de_destino):  
@@ -86,7 +86,7 @@ def start_chat_user_with_multi_servers():
       conexao_chat_server.connect(endereco_de_destino)
       conexoes_falharam = False
     except ConnectionRefusedError: 
-      print(f'Problema ao se conectar ao {endereco_de_destino}')
+      print('Problema ao se conectar ao {}'.format(endereco_de_destino))
 
     if not conexoes_falharam:
       conexoes_chat_servers.append(conexao_chat_server)
@@ -106,7 +106,7 @@ def start_chat_user_with_multi_servers():
   # Informando para os servidores que irá fechar a conexão
   send_message( mensagem_a_enviar, conexoes_chat_servers )
   conexao_chat_server.close()
-  print(f'Desconectado com sucesso')
+  print('Desconectado com sucesso')
 
 start_chat_user_with_multi_servers()
 #start_chat_user()
