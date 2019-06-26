@@ -12,46 +12,11 @@ PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
 BUFF_SIZE = 1024
 MAX_USERS = 5
 
-def start_server_udp():
-  ## Envelopa todo o protocolo de rede
-  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # udp
-  endereco_para_escutar = (HOST, PORT)
-  socket_udp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
-  print("Servidor online: Escutando mensagens")
-
-  while True:
-    bytes_recebidos, cliente = socket_udp.recvfrom(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
-    mensagem_recebida = bytes_recebidos.decode("utf8")
-    print(cliente, mensagem_recebida)
-  socket_udp.close()
-
-def start_server_tcp():
-  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # tcp
-  endereco_para_escutar = (HOST, PORT)
-  socket_tcp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
-  print("Servidor online: Escutando mensagens")
-  socket_tcp.listen(1)
-
-  while True:
-    con, cliente = socket_tcp.accept()
-    print("Conectado a " + str(cliente[0]) + ':' + str(cliente[1]))
-
-    while True:
-      bytes_recebidos = con.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
-      mensagem_recebida = bytes_recebidos.decode("utf8")
-      # print(mensagem_recebida)
-    print("Finalizando")
-    con.close()
-  socket_tcp.close()
-
 def conexao_usuario(chat_server, usuarios, usuario):
-
-  usuario.send(bytes("Bem-vindo! " + "Escreva a sala", "utf8"))
   room = int(usuario.recv(BUFF_SIZE).decode("utf8"))
-  usuario.send(bytes("Bem-vindo! " + "Escreva seu nome e aperte enter!", "utf8"))
-  nickname = usuario.recv(BUFF_SIZE).decode("utf8")
-  welcome = 'Para sair digite {quit} e aperte enter'
+  welcome = 'Bem-Vindo!'
   usuario.send(bytes(welcome, "utf8"))
+  nickname = usuario.recv(BUFF_SIZE).decode("utf8")
   mensagem = "%s se juntou ao chat" % nickname
   broadcast(usuarios[room], bytes(mensagem, "utf8"))
   usuarios[room][usuario] = nickname
