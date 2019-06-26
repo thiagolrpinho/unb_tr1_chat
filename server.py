@@ -33,19 +33,12 @@ def start_chat_multi_server():
   print(endereco_servidor_conectar)
 
   servidor.conecta_servidor_auxiliar(endereco_servidor_conectar)
-  mensagem_servidores = input()
-  servidor.broadcast_servidores(mensagem_servidores)
-  mensagem_servidores = input()
-  servidor.broadcast_servidores(mensagem_servidores)
-  if servidor.buffer_nicknames_salas:
-    print(servidor.buffer_nicknames_salas)
-
 
   # Depois disso, ligamos o servidor
-  #servidor.set_servidor_online()
+  servidor.set_servidor_online()
 
   # Depois pedimos ao servidores auxiliares para se conectarem ao primário
-  #servidor.espera_thread()
+  servidor.espera_thread()
   
 
 
@@ -110,7 +103,7 @@ class SERVIDOR():
       welcome = 'Para sair digite {quit} e aperte enter'
       usuario.send(bytes(welcome, "utf8"))
       mensagem = "%s se juntou ao chat" % nickname
-      self.broadcast_servidores(endereco_usuario)
+      self.broadcast_servidores(str(endereco_usuario) + str(nickname) + str(usuario))
       self.salas_de_usuarios[usuario] = nickname
       self.broadcast(bytes(mensagem, "utf8"))
       threads_conexoes_usuarios.append(Thread(target=self.conexao_usuario, args=(usuario,)))
@@ -185,12 +178,14 @@ class SERVIDOR():
   
   def recebe_mensagem(self):
     ''' Método usado para receber mensagens do servidor primário com os nicknames e salas dos usuários recém conectados'''
-
-    while True:
+    primeira_mensagem = True
+    while primeira_mensagem or self.is_online:
       try: 
         mensagem = self.soquete_de_recepção.recv(1024).decode("utf8")
+        primeira_mensagem = False
       except OSError: 
         break
+      print(mensagem)
       self.buffer_nicknames_salas.append(mensagem)
 
         

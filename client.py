@@ -10,9 +10,12 @@ LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP    # ENDEREÇO IP SERVIDOR
 PORT = 3300        # PORTA DO SERVIDOR(CLIENTE ENVIA)
 BUFF_SIZE = 1024
+ligado = False
 
 def receive_message(conexao_chat_server):
+  global ligado 
   ligado = True
+  
   while ligado:
     try: 
       mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
@@ -36,9 +39,11 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
         break
 
 def start_chat_user_with_multi_servers():
+  global ligado
+
   conexoes_chat_servers = []
   # Soquetes TCP
-  enderecos_de_destino = [('127.0.0.1', 3300)]
+  enderecos_de_destino = [('127.0.0.1', 3301)]
 
   # Tenta criar uma conexão com os servidores de destino
   for i,endereco_de_destino in enumerate(enderecos_de_destino):  
@@ -57,6 +62,7 @@ def start_chat_user_with_multi_servers():
         
       # Informando para os servidores que irá fechar a conexão
       send_message( mensagem_a_enviar, conexoes_chat_servers )
+      ligado = False
       conexao_chat_server.close()
       receive_thread._stop
     except ConnectionRefusedError: 
