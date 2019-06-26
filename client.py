@@ -39,7 +39,7 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
 def start_chat_user_with_multi_servers():
   conexoes_chat_servers = []
   # Soquetes TCP
-  enderecos_de_destino = [('127.0.0.1', 3500), ('127.0.0.1', 3943)]
+  enderecos_de_destino = [('127.0.0.1', 3380), ('127.0.0.1', 4283)]
 
   # Tenta criar uma conexão com os servidores de destino
   for i,endereco_de_destino in enumerate(enderecos_de_destino):  
@@ -48,27 +48,26 @@ def start_chat_user_with_multi_servers():
     try: 
       conexao_chat_server.connect(endereco_de_destino)
       conexoes_falharam = False
+      if not conexoes_falharam:
+        conexoes_chat_servers.append(conexao_chat_server)
+        receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+        receive_thread.start()
+
+      # Comunica-se com os servidores e consequentemente os outros usuários
+      mensagem_a_enviar = input()
+      while mensagem_a_enviar != '{quit}':
+        send_message( mensagem_a_enviar, conexoes_chat_servers )
+        mensagem_a_enviar = input()
+        
+      # Informando para os servidores que irá fechar a conexão
+      send_message( mensagem_a_enviar, conexoes_chat_servers )
+      conexao_chat_server.close()
+      receive_thread._stop
     except ConnectionRefusedError: 
       print('Problema ao se conectar ao {}'.format(endereco_de_destino))
 
-    if not conexoes_falharam:
-      conexoes_chat_servers.append(conexao_chat_server)
-      receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
-      receive_thread.start()
-        
+      
 
-  if conexoes_falharam:
-    return None
-
-  # Comunica-se com os servidores e consequentemente os outros usuários
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != '{quit}':
-    send_message( mensagem_a_enviar, conexoes_chat_servers )
-    mensagem_a_enviar = input()
-  
-  # Informando para os servidores que irá fechar a conexão
-  send_message( mensagem_a_enviar, conexoes_chat_servers )
-  conexao_chat_server.close()
   print('Desconectado com sucesso')
 
 start_chat_user_with_multi_servers()
