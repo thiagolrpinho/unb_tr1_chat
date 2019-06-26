@@ -5,99 +5,194 @@
 # É uma biblioteca python voltada para a interface de soquetes(TCP/UDP).
 import socket
 from threading import Thread
+import random
 
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP  # ENDEREÇO IP DO HOST
 PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
 BUFF_SIZE = 1024
 MAX_USERS = 5
+MAX_SERVERS = 2
 
-def start_server_udp():
-  ## Envelopa todo o protocolo de rede
-  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # udp
-  endereco_para_escutar = (HOST, PORT)
-  socket_udp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
-  print("Servidor online: Escutando mensagens")
+def start_chat_multi_server():
+  servidores = []
+  endereco_para_escutar_usuarios = (HOST, PORT + random.randint(0,500))
+  endereco_para_escutar_servidores = (HOST, PORT + random.randint(501,1000))
 
-  while True:
-    bytes_recebidos, cliente = socket_udp.recvfrom(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
-    mensagem_recebida = bytes_recebidos.decode("utf8")
-    print(cliente, mensagem_recebida)
-  socket_udp.close()
+  print(endereco_para_escutar_usuarios)
+  print(endereco_para_escutar_servidores)
 
-def start_server_tcp():
-  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # tcp
-  endereco_para_escutar = (HOST, PORT)
-  socket_tcp.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
-  print("Servidor online: Escutando mensagens")
-  socket_tcp.listen(1)
+  servidor = SERVIDOR(endereco_para_escutar_usuarios)
+  servidor.recebe_servidor_auxiliar(endereco_para_escutar_servidores)
 
-  while True:
-    con, cliente = socket_tcp.accept()
-    print("Conectado a " + str(cliente[0]) + ':' + str(cliente[1]))
+  endereco_servidor_conectar = input()
+  endereco_servidor_conectar = endereco_servidor_conectar.replace('(', '')
+  endereco_servidor_conectar = endereco_servidor_conectar.replace(')', '')
+  host, porta = endereco_servidor_conectar.split(',')
+  endereco_servidor_conectar = (host.replace("'", ''), int(porta))
+  print(endereco_servidor_conectar)
 
-    while True:
-      bytes_recebidos = con.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
-      mensagem_recebida = bytes_recebidos.decode("utf8")
-      # print(mensagem_recebida)
-    print("Finalizando")
-    con.close()
-  socket_tcp.close()
+  servidor.conecta_servidor_auxiliar(endereco_servidor_conectar)
 
-def conexao_usuario(chat_server, usuarios, usuario):
+  # Depois disso, ligamos o servidor
+  servidor.set_servidor_online()
 
-  usuario.send(bytes("Bem-vindo! " + "Escreva a sala", "utf8"))
-  room = int(usuario.recv(BUFF_SIZE).decode("utf8"))
-  usuario.send(bytes("Bem-vindo! " + "Escreva seu nome e aperte enter!", "utf8"))
-  nickname = usuario.recv(BUFF_SIZE).decode("utf8")
-  welcome = 'Para sair digite {quit} e aperte enter'
-  usuario.send(bytes(welcome, "utf8"))
-  mensagem = "%s se juntou ao chat" % nickname
-  broadcast(usuarios[room], bytes(mensagem, "utf8"))
-  usuarios[room][usuario] = nickname
-  bytes_recebidos = usuario.recv(BUFF_SIZE)
-  while str(bytes_recebidos, encoding='utf8') != '{quit}':
-    # print(str(bytes_recebidos, encoding='utf8'))
-    broadcast(usuarios[room], bytes_recebidos, usuarios[room][usuario])
-    bytes_recebidos = usuario.recv(BUFF_SIZE) # Retorna o buffer e o endereço IP de origem
-
-  usuario.close()
-  del usuarios[room][usuario]
-  broadcast(usuarios[room], bytes("%s está sem tempo, irmão." % nickname, "utf8"))
-
-def recebe_usuario(chat_server, usuarios):
-  enderecos = dict()
-  try:
-    while True:
-      usuario, endereco_usuario = chat_server.accept()
-      print("Conectado a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
-      enderecos[usuario] = endereco_usuario
-      Thread(target=conexao_usuario, args=(chat_server, usuarios, usuario)).start()
-  except KeyboardInterrupt:
-    pass
-
-def broadcast(usuarios, mensagem_a_transmitir, autor = "Servidor "):
-  if usuarios:
-    for socket in usuarios:
-      socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
-
-def start_chat_server():
-  try:
-    chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    endereco_para_escutar = (HOST, PORT)
-    chat_server.bind(endereco_para_escutar)     # Esse socket estará ligado a esse endereço
-    print("Servidor online: Escutando mensagens")
-    chat_server.listen(MAX_USERS)  ## escuta no máximo 5 conexões
-    usuarios = [dict() for i in range(MAX_USERS)]
-
-    ACCEPT_THREAD = Thread(target=recebe_usuario, args=(chat_server, usuarios,))
-    ACCEPT_THREAD.start()
-    ACCEPT_THREAD.join()
-  except KeyboardInterrupt:
-    chat_server.close()
-    pass
+  # Depois pedimos ao servidores auxiliares para se conectarem ao primário
+  servidor.espera_thread()
+  
 
 
-start_chat_server()
+class SERVIDOR():
+  ''' Essa classe descreve o comportamento e armazena as variáveis relacionados ao 
+  servidor do chat, ele pode ser primário ou não. O sevidor primário recebe as mensagens
+  dos usuários e transmite de volta. Os servidores não primários apenas recebem informação
+  dos nicknames e suas respectivas salas do servidor primário. Quando um servidor não primário
+  recebe uma mensagem de um usuário, isso significa que o primário caiu e agora ele passa a ser
+  o primário. '''
+  def __init__(self, endereco_da_porta, numero_de_usuarios_maximo = 5 ):
+    ''' Construtor precisa obrigatoriamente do endereco e das salas. Ele também pode ser configurado para ser ou não primário.
+    E o número máximo de usuário desejado'''
+    self.salas_de_usuarios = dict() # Uma lista de hashs com o nickname e o soquete de cada usuário
+    self.servidores_auxiliares = [] # Aqui serão listados quais servidores auxiliares devem ser informados sobre os novos usuários
+    self.buffer_nicknames_salas = [] # Aqui serão armazenadas por ordem de chegada os usuários do chat que o servidor primário informou
+    self.thread_com_usuarios = None # Para melhor controlar a comunicação com os usuários, vamos armazenar a thread
+    self.is_online = False # Flag para controlar as threads do servidor
+    self.soquete_da_porta = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Cria um objeto para encapsular o protocolo TCP
+    self.soquete_de_transmissao = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Esse soquete será usado para se comunicar com outros servidores\
+    self.soquete_de_recepção = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Esse soquete será usado para se comunicar com outros servidores\
+    
+    PORTA_LIVRE = False
+    while not PORTA_LIVRE:
+      try: 
+        self.soquete_da_porta.bind(endereco_da_porta)     # Esse soquete estará ligado a esse endereço
+        PORTA_LIVRE = True
+      except OSError as e:
+        print("Porta em uso: " + e)   
+    self.soquete_da_porta.listen(numero_de_usuarios_maximo)  ## escuta no máximo esse número de conexões
+
+
+  def __del__(self):
+    ''' Destrutor '''
+    self.soquete_da_porta.close() 
+    self.soquete_de_transmissao.close()
+
+  def espera_thread(self):
+    ''' Faz com que o servidor em questão segure o andamento do código até essa 
+    thread acabar '''
+    self.thread_com_usuarios.join()
+  
+  def set_servidor_online(self):
+    '''Cria uma thread com a função recebe_usuario e essa fica em um loop infinito recebendo usuários'''
+    self.is_online = True
+    self.thread_com_usuarios = Thread(target=self.servidor_online, args=())
+    self.thread_com_usuarios.setDaemon(False) # Isso faz com que essa thread e as demais que ela chamar sejam fechadas
+    # quando a thread ou programa acima dele fechar
+    self.thread_com_usuarios.start() # Começa a thread
+
+  def servidor_online(self):
+    ''' Liga o servidor e fica escutando por novas conexões de usuários '''
+    soquete_do_servidor = self.soquete_da_porta
+    threads_conexoes_usuarios = []
+
+    while self.is_online: # O servidor deve fechar quando a contagem acabar para podermos simularmos a queda
+      usuario, endereco_usuario = soquete_do_servidor.accept()
+      print("Conectado como primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
+      usuario.send(bytes("Bem-vindo! "+
+                        "Escreva seu nome e aperte enter!", "utf8"))
+      nickname = usuario.recv(1024).decode("utf8")
+      welcome = 'Para sair digite {quit} e aperte enter'
+      usuario.send(bytes(welcome, "utf8"))
+      mensagem = "%s se juntou ao chat" % nickname
+      self.broadcast_servidores(str(endereco_usuario) + str(nickname) + str(usuario))
+      self.salas_de_usuarios[usuario] = nickname
+      self.broadcast(bytes(mensagem, "utf8"))
+      threads_conexoes_usuarios.append(Thread(target=self.conexao_usuario, args=(usuario,)))
+      threads_conexoes_usuarios[-1].start()
+
+    self.soquete_da_porta.close()
+    self.is_online = False
+    print("Desligando servidor {}".format(self))
+  
+  def conexao_usuario(self, usuario):
+    ''' Conecta o servidor a um usuário, recebendo mensagens desses e dando broadcast para os demais membros da sala'''
+    try: 
+      bytes_recebidos = usuario.recv(1024)
+    except OSError:
+      del self.salas_de_usuarios[usuario]
+      usuario.close()
+    while str(bytes_recebidos, encoding='utf8') != '{quit}' and self.is_online:
+      print("recebeu {}".format(self) + str(bytes_recebidos, encoding='utf8') + "de {}".format(usuario))
+      try: 
+        self.broadcast(bytes_recebidos, self.salas_de_usuarios[usuario])
+        bytes_recebidos = usuario.recv(1024)
+      except OSError: 
+        break
+      except KeyError:
+        break
+
+    usuario.close()
+    self.broadcast(bytes("%s está sem tempo, irmão." % self.salas_de_usuarios[usuario], "utf8"))
+    del self.salas_de_usuarios[usuario]
+
+  def broadcast(self, mensagem_a_transmitir, autor = "Servidor "):
+    if self.salas_de_usuarios:
+      for socket in self.salas_de_usuarios: 
+        try : 
+          socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
+          #print("Broadcast de {}".format(self) + "para {}".format(socket) + "do seguinte: {}".format(mensagem_a_transmitir))
+        except BrokenPipeError: 
+            socket.close()
+        except OSError:
+            socket.close()
+
+
+  def broadcast_servidores(self, mensagem_a_transmitir):
+    '''Método para comunicação entre servidores '''
+    mensagem_a_transmitir = str(mensagem_a_transmitir)
+    if self.servidores_auxiliares:
+      for soquete in self.servidores_auxiliares: 
+        try : soquete.send(bytes(mensagem_a_transmitir, 'utf8') )
+        except BrokenPipeError: 
+            soquete.close()
+        except OSError:
+            soquete.close()
+
+  def recebe_servidor_auxiliar(self, endereco_para_escutar):
+    '''Método que cria uma thread para receber a conexão de um servidor auxiliar e armazena na lista de servidores auxiliares '''
+    self.soquete_de_transmissao.bind(endereco_para_escutar)
+    self.soquete_de_transmissao.listen(MAX_SERVERS)
+    Thread(target=self.adiciona_servidor_auxiliar).start()
+
+  def adiciona_servidor_auxiliar(self):
+    servidor, endereco_servidor = self.soquete_de_transmissao.accept()
+    print("Auxiliar recebido com sucesso")
+    self.servidores_auxiliares.append(servidor)
+
+  
+  def conecta_servidor_auxiliar(self, endereco_servidor_auxiliar):
+    ''' O servidor auxiliar pede para o primário para ser adicionado à sua lista de broadcast de servidores'''
+    self.soquete_de_recepção.connect(endereco_servidor_auxiliar)
+    print("Conectado ao auxiliar {}".format(endereco_servidor_auxiliar))
+    receive_thread = Thread(target=self.recebe_mensagem)
+    receive_thread.start()
+  
+  def recebe_mensagem(self):
+    ''' Método usado para receber mensagens do servidor primário com os nicknames e salas dos usuários recém conectados'''
+    primeira_mensagem = True
+    while primeira_mensagem or self.is_online:
+      try: 
+        mensagem = self.soquete_de_recepção.recv(1024).decode("utf8")
+        primeira_mensagem = False
+      except OSError: 
+        break
+      print(mensagem)
+      self.buffer_nicknames_salas.append(mensagem)
+
+        
+      
+
+
+start_chat_multi_server()
+#start_chat_server()
 #start_server_tcp()
 #start_server_udp()

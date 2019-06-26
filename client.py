@@ -10,53 +10,68 @@ LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP    # ENDEREÇO IP SERVIDOR
 PORT = 3300        # PORTA DO SERVIDOR(CLIENTE ENVIA)
 BUFF_SIZE = 1024
-
-def start_cliente_udp():
-  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  endereco_de_destino = (HOST, PORT)
-  print("Para sair envie uma mensagem com um espaço em branco")
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    socket_udp.sendto(bytes(mensagem_a_enviar, 'utf8'), endereco_de_destino)
-    mensagem_a_enviar = input()
-  socket_udp.close
-
-def start_cliente_tcp():
-  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  endereco_de_destino = (HOST, PORT)
-  socket_tcp.connect(endereco_de_destino)
-  print("Para sair envie uma mensagem com um espaço em branco")
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    socket_tcp.send(bytes(mensagem_a_enviar, 'utf8'))
-    mensagem_a_enviar = input()
-  socket_tcp.close()
+ligado = False
 
 def receive_message(conexao_chat_server):
-  while True:
-    try: mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
-    except OSError: break
-    print(mensagem)
+  global ligado 
+  ligado = True
+  
+  while ligado:
+    try: 
+      mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
+    except:
+      ligado = False
 
-def send_message(mensagem_a_enviar, conexao_chat_server, evento = None):
-  conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
+    if ligado and not mensagem == ' ':
+      print(mensagem)
+    
 
+def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
+  if conexoes_chat_servers:
+    for conexao_chat_server in conexoes_chat_servers:
+      try:
+        conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
+        break
+      except BrokenPipeError:
+        conexoes_chat_servers.remove(conexao_chat_server)
+        continue
+      except OSError:
+        break
 
-def start_chat_user():
-  conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  # Soquete TCP
-  endereco_de_destino = (HOST, PORT)
-  # Tenta criar uma conexão com o servidor de destino
-  conexao_chat_server.connect(endereco_de_destino)
-  receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
-  receive_thread.start()
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != '{quit}':
-    send_message(mensagem_a_enviar, conexao_chat_server)
-    mensagem_a_enviar = input()
-  # Manda uma informando para o server que irá fechar a conexão
-  send_message(mensagem_a_enviar, conexao_chat_server)
-  conexao_chat_server.close()
+def start_chat_user_with_multi_servers():
+  global ligado
 
-start_chat_user()
+  conexoes_chat_servers = []
+  # Soquetes TCP
+  enderecos_de_destino = [('127.0.0.1', 3301)]
+
+  # Tenta criar uma conexão com os servidores de destino
+  for i,endereco_de_destino in enumerate(enderecos_de_destino):  
+    conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try: 
+      conexao_chat_server.connect(endereco_de_destino)
+      conexoes_chat_servers.append(conexao_chat_server)
+      receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+      receive_thread.start()
+
+      # Comunica-se com os servidores e consequentemente os outros usuários
+      mensagem_a_enviar = input()
+      while mensagem_a_enviar != '{quit}':
+        send_message( mensagem_a_enviar, conexoes_chat_servers )
+        mensagem_a_enviar = input()
+        
+      # Informando para os servidores que irá fechar a conexão
+      send_message( mensagem_a_enviar, conexoes_chat_servers )
+      ligado = False
+      conexao_chat_server.close()
+      receive_thread._stop
+    except ConnectionRefusedError: 
+      print('Problema ao se conectar ao {}'.format(endereco_de_destino))
+
+      
+
+  print('Desconectado com sucesso')
+
+start_chat_user_with_multi_servers()
+#start_chat_user()
 #start_cliente_udp()
