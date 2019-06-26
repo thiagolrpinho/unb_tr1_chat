@@ -148,7 +148,7 @@ class SERVIDOR():
         self.soquete_da_porta.bind(endereco_da_porta)     # Esse soquete estará ligado a esse endereço
         PORTA_LIVRE = True
       except OSError as e:
-        print(f"Porta em uso: {e}")   
+        print("Porta em uso: " + e)   
     self.soquete_da_porta.listen(numero_de_usuarios_maximo)  ## escuta no máximo esse número de conexões
 
 
@@ -181,14 +181,14 @@ class SERVIDOR():
   def servidor_online(self):
     ''' Liga o servidor e fica escutando por novas conexões de usuários '''
     soquete_do_servidor = self.soquete_da_porta
-    print(f"Servidor {self} online com o soquete {soquete_do_servidor}")
+    print("Servidor online com o soquete {}".format(soquete_do_servidor))
     if self.primario: # Para testar a funcionalidade de se manter online mudando os servidores, estamos contando quantos usuários saem da sala
       self.contagem = 1
     else: 
       self.contagem = 3
 
     while self.contagem > 0 or not self.is_primario: # O servidor deve fechar quando a contagem acabar para podermos simularmos a queda
-      print(f"{self} Contagem: {self.contagem}")      
+      print("Contagem: {} {}".format(self, self.contagem))      
       usuario, endereco_usuario = soquete_do_servidor.accept()
       if self.primario:
         print("Conectado como primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
@@ -203,7 +203,7 @@ class SERVIDOR():
         self.broadcast(bytes(mensagem, "utf8"))
         Thread(target=self.conexao_usuario, args=(usuario,)).start()
       else:
-        print(f"{self} conectado como não primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
+        print(self + "conectado como não primário a " + str(endereco_usuario[0]) + ':' + str(endereco_usuario[1]))
         while not self.buffer_nicknames_salas:
             pass
         nickname = self.buffer_nicknames_salas.pop()
@@ -213,7 +213,7 @@ class SERVIDOR():
     self.set_primario(False)
     self.soquete_da_porta.close()
     self.is_online = False
-    print(f"Desligando servidor {self}")
+    print("Desligando servidor" + self)
   
   def conexao_usuario(self, usuario):
     ''' Conecta o servidor a um usuário, recebendo mensagens desses e dando broadcast para os demais membros da sala'''
@@ -224,7 +224,7 @@ class SERVIDOR():
       usuario.close()
     while str(bytes_recebidos, encoding='utf8') != '{quit}' and self.is_online:
       self.set_primario()
-      print(f"{self} recebeu" + str(bytes_recebidos, encoding='utf8') + f"de {usuario}")
+      print(self + "recebeu" + str(bytes_recebidos, encoding='utf8') + "de" + usuario)
       try: 
         self.broadcast(bytes_recebidos, self.salas_de_usuarios[usuario])
         bytes_recebidos = usuario.recv(1024)
@@ -246,7 +246,7 @@ class SERVIDOR():
       for socket in self.salas_de_usuarios: 
         try : 
           socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
-          print(f"Broadcast de {self} para {socket} do seguinte: {mensagem_a_transmitir}")
+          print("Broadcast de" + self + "para" + socket + "do seguinte:" + mensagem_a_transmitir)
         except BrokenPipeError: 
             socket.close()
         except OSError:
