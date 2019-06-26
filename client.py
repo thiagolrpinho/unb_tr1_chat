@@ -16,7 +16,6 @@ def receive_message(conexao_chat_server):
   while ligado:
     try: 
       mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
-      ligado = False
     except:
       ligado = False
 
@@ -39,19 +38,16 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
 def start_chat_user_with_multi_servers():
   conexoes_chat_servers = []
   # Soquetes TCP
-  enderecos_de_destino = [('127.0.0.1', 3380), ('127.0.0.1', 4283)]
+  enderecos_de_destino = [('127.0.0.1', 3531)]
 
   # Tenta criar uma conexão com os servidores de destino
   for i,endereco_de_destino in enumerate(enderecos_de_destino):  
-    conexoes_falharam = True
     conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try: 
       conexao_chat_server.connect(endereco_de_destino)
-      conexoes_falharam = False
-      if not conexoes_falharam:
-        conexoes_chat_servers.append(conexao_chat_server)
-        receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
-        receive_thread.start()
+      conexoes_chat_servers.append(conexao_chat_server)
+      receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+      receive_thread.start()
 
       # Comunica-se com os servidores e consequentemente os outros usuários
       mensagem_a_enviar = input()
