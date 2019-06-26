@@ -12,18 +12,40 @@ HOST = LOCAL_IP  # ENDEREÇO IP DO HOST
 PORT = 3300        # PORTA DO SERVIDOR(SERVIDOR ESCUTA)
 BUFF_SIZE = 1024
 MAX_USERS = 5
+MAX_SERVERS = 2
 
 def start_chat_multi_server():
   servidores = []
-  endereco_para_escutar = (HOST, PORT + random.randint(0,500))
-  print(endereco_para_escutar)
-  servidor = SERVIDOR(endereco_para_escutar)
+  endereco_para_escutar_usuarios = (HOST, PORT + random.randint(0,500))
+  endereco_para_escutar_servidores = (HOST, PORT + random.randint(501,1000))
+
+  print(endereco_para_escutar_usuarios)
+  print(endereco_para_escutar_servidores)
+
+  servidor = SERVIDOR(endereco_para_escutar_usuarios)
+  servidor.recebe_servidor_auxiliar(endereco_para_escutar_servidores)
+
+  endereco_servidor_conectar = input()
+  endereco_servidor_conectar = endereco_servidor_conectar.replace('(', '')
+  endereco_servidor_conectar = endereco_servidor_conectar.replace(')', '')
+  host, porta = endereco_servidor_conectar.split(',')
+  endereco_servidor_conectar = (host.replace("'", ''), int(porta))
+  print(endereco_servidor_conectar)
+
+  servidor.conecta_servidor_auxiliar(endereco_servidor_conectar)
+  mensagem_servidores = input()
+  servidor.broadcast_servidores(mensagem_servidores)
+  mensagem_servidores = input()
+  servidor.broadcast_servidores(mensagem_servidores)
+  if servidor.buffer_nicknames_salas:
+    print(servidor.buffer_nicknames_salas)
+
 
   # Depois disso, ligamos o servidor
-  servidor.set_servidor_online()
+  #servidor.set_servidor_online()
 
   # Depois pedimos ao servidores auxiliares para se conectarem ao primário
-  servidor.espera_thread()
+  #servidor.espera_thread()
   
 
 
@@ -44,6 +66,7 @@ class SERVIDOR():
     self.is_online = False # Flag para controlar as threads do servidor
     self.soquete_da_porta = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Cria um objeto para encapsular o protocolo TCP
     self.soquete_de_transmissao = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Esse soquete será usado para se comunicar com outros servidores\
+    self.soquete_de_recepção = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Esse soquete será usado para se comunicar com outros servidores\
     
     PORTA_LIVRE = False
     while not PORTA_LIVRE:
@@ -141,29 +164,31 @@ class SERVIDOR():
         except OSError:
             soquete.close()
 
-  def adiciona_servidor_auxiliar(self):
+  def recebe_servidor_auxiliar(self, endereco_para_escutar):
     '''Método que cria uma thread para receber a conexão de um servidor auxiliar e armazena na lista de servidores auxiliares '''
-    Thread(target=self.recebe_servidor_auxiliar).start()
+    self.soquete_de_transmissao.bind(endereco_para_escutar)
+    self.soquete_de_transmissao.listen(MAX_SERVERS)
+    Thread(target=self.adiciona_servidor_auxiliar).start()
 
-  def recebe_servidor_auxiliar(self):
-    servidor, endereco_servidor = self.soquete_da_porta.accept()
+  def adiciona_servidor_auxiliar(self):
+    servidor, endereco_servidor = self.soquete_de_transmissao.accept()
     print("Auxiliar recebido com sucesso")
     self.servidores_auxiliares.append(servidor)
 
   
-  def auxilia_servidor_primario(self, endereco_servidor_primario):
+  def conecta_servidor_auxiliar(self, endereco_servidor_auxiliar):
     ''' O servidor auxiliar pede para o primário para ser adicionado à sua lista de broadcast de servidores'''
-    self.soquete_de_transmissao.connect(endereco_servidor_primario)
-    print("Conectado ao primário")
+    self.soquete_de_recepção.connect(endereco_servidor_auxiliar)
+    print("Conectado ao auxiliar {}".format(endereco_servidor_auxiliar))
     receive_thread = Thread(target=self.recebe_mensagem)
     receive_thread.start()
   
   def recebe_mensagem(self):
     ''' Método usado para receber mensagens do servidor primário com os nicknames e salas dos usuários recém conectados'''
 
-    while self.is_online:
+    while True:
       try: 
-        mensagem = self.soquete_de_transmissao.recv(1024).decode("utf8")
+        mensagem = self.soquete_de_recepção.recv(1024).decode("utf8")
       except OSError: 
         break
       self.buffer_nicknames_salas.append(mensagem)
