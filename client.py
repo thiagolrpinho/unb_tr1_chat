@@ -16,6 +16,7 @@ def receive_message(conexao_chat_server):
   while ligado:
     try: 
       mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
+      ligado = False
     except:
       ligado = False
 
@@ -28,7 +29,6 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
     for conexao_chat_server in conexoes_chat_servers:
       try:
         conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
-        print("Mensagem: {} enviada para {}".format(mensagem_a_enviar, conexao_chat_server))
         break
       except BrokenPipeError:
         conexoes_chat_servers.remove(conexao_chat_server)
@@ -39,7 +39,7 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
 def start_chat_user_with_multi_servers():
   conexoes_chat_servers = []
   # Soquetes TCP
-  enderecos_de_destino = [('127.0.0.1', 3677), ('127.0.0.1', 4156)]
+  enderecos_de_destino = [('127.0.0.1', 3500), ('127.0.0.1', 3943)]
 
   # Tenta criar uma conexão com os servidores de destino
   for i,endereco_de_destino in enumerate(enderecos_de_destino):  

@@ -158,7 +158,7 @@ class SERVIDOR():
       for socket in self.salas_de_usuarios: 
         try : 
           socket.send(bytes(autor  + " diz: ","utf8") + mensagem_a_transmitir )
-          print("Broadcast de {}".format(self) + "para {}".format(socket) + "do seguinte: {}".format(mensagem_a_transmitir))
+          #print("Broadcast de {}".format(self) + "para {}".format(socket) + "do seguinte: {}".format(mensagem_a_transmitir))
         except BrokenPipeError: 
             socket.close()
         except OSError:
