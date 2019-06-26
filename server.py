@@ -115,11 +115,8 @@ class SERVIDOR():
         break
 
     usuario.close()
-    try:  
-      self.broadcast(usuarios, bytes("%s está sem tempo, irmão." % self.salas_de_usuarios[usuario], "utf8"))
-      del self.salas_de_usuariosusuarios[usuario]
-    except:
-      pass
+    self.broadcast(bytes("%s está sem tempo, irmão." % self.salas_de_usuarios[usuario], "utf8"))
+    del self.salas_de_usuarios[usuario]
 
   def broadcast(self, mensagem_a_transmitir, autor = "Servidor "):
     if self.salas_de_usuarios:

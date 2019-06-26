@@ -19,7 +19,7 @@ def receive_message(conexao_chat_server):
     except:
       ligado = False
 
-    if ligado:
+    if ligado and not mensagem == ' ':
       print(mensagem)
     
 
@@ -38,7 +38,7 @@ def send_message(mensagem_a_enviar, conexoes_chat_servers, evento = None):
 def start_chat_user_with_multi_servers():
   conexoes_chat_servers = []
   # Soquetes TCP
-  enderecos_de_destino = [('127.0.0.1', 3531)]
+  enderecos_de_destino = [('127.0.0.1', 3300)]
 
   # Tenta criar uma conexão com os servidores de destino
   for i,endereco_de_destino in enumerate(enderecos_de_destino):  
