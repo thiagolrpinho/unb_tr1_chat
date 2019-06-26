@@ -98,6 +98,9 @@ def send_message(event = None):
 
 def quit_chat():
   CONEXAO.send(bytes("{quit}", "utf8"))
+  CONEXAO.close()
+  CURRENT_FRAME.destroy()
+  ROOT.destroy()
 
 def start_chat_user():
   start_gui()
