@@ -4,59 +4,103 @@
 
 # Nesse módulo será desenvolvido o client udp
 import socket
+import tkinter as tk
 from threading import Thread
 
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP    # ENDEREÇO IP SERVIDOR
 PORT = 3300        # PORTA DO SERVIDOR(CLIENTE ENVIA)
 BUFF_SIZE = 1024
+CONEXAO = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+DESTINO = (HOST, PORT)
+ROOT = tk.Tk()
+CURRENT_FRAME = None
+NOME = None
+SALA = None
+MENSAGEM = None
+CHAT = None
 
-def start_cliente_udp():
-  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  endereco_de_destino = (HOST, PORT)
-  print("Para sair envie uma mensagem com um espaço em branco")
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    socket_udp.sendto(bytes(mensagem_a_enviar, 'utf8'), endereco_de_destino)
-    mensagem_a_enviar = input()
-  socket_udp.close
+def chat_gui():
+  global CURRENT_FRAME
+  global MENSAGEM
+  global CHAT
+  ROOT.title(NOME.get() + ' em: Sala ' + SALA.get())
 
-def start_cliente_tcp():
-  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  endereco_de_destino = (HOST, PORT)
-  socket_tcp.connect(endereco_de_destino)
-  print("Para sair envie uma mensagem com um espaço em branco")
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    socket_tcp.send(bytes(mensagem_a_enviar, 'utf8'))
-    mensagem_a_enviar = input()
-  socket_tcp.close()
+  chatFrame = tk.Frame(ROOT, padx=10, pady=10)
 
-def receive_message(conexao_chat_server):
+  CHAT = tk.Text(chatFrame, state=tk.DISABLED)
+  MENSAGEM = tk.Entry(chatFrame, width=55)
+  sendButton = tk.Button(chatFrame, text='Enviar', command=send_message)
+  exitButton = tk.Button(chatFrame, text='Sair', command=quit_chat)
+
+  MENSAGEM.bind('<Return>', send_message)
+
+  CHAT.pack()
+  MENSAGEM.pack(side=tk.LEFT)
+  sendButton.pack(side=tk.LEFT)
+  exitButton.pack(side=tk.LEFT)
+
+  CURRENT_FRAME.pack_forget()
+
+  chatFrame.pack()
+
+  CURRENT_FRAME = chatFrame
+
+  CONEXAO.connect(DESTINO)
+  receive_thread = Thread(target=receive_message, args=())
+  receive_thread.start()
+
+
+def start_gui():
+  global CURRENT_FRAME
+  global NOME
+  global SALA
+  ROOT.title('Login')
+
+  loginFrame = tk.Frame(ROOT, padx=10, pady=10)
+
+  loginLabel = tk.Label(loginFrame, text='Bem-Vindo!\n\nInsira seu nome de usuário\n e sua sala nos campos\na seguir:\n')
+  nameLabel = tk.Label(loginFrame, text='Nome')
+  NOME = tk.Entry(loginFrame)
+  roomLabel = tk.Label(loginFrame, text='Sala')
+  SALA = tk.Entry(loginFrame)
+  spacer = tk.Label(loginFrame, text='')
+  loginButton = tk.Button(loginFrame, text='Entrar', command=chat_gui)
+  exitButton = tk.Button(loginFrame, text='Sair', command=tk._exit)
+
+  loginLabel.grid(row=0, columnspan=2)
+  nameLabel.grid(row=1, sticky=tk.E)
+  NOME.grid(row=1, column=1)
+  roomLabel.grid(row=2, sticky=tk.E)
+  SALA.grid(row=2, column=1)
+  spacer.grid(row=3)
+  loginButton.grid(row=4, columnspan=2)
+  exitButton.grid(row=4, columnspan=2, sticky=tk.E)
+
+  loginFrame.pack()
+
+  CURRENT_FRAME = loginFrame
+
+def receive_message():
+  global CHAT
+
   while True:
-    try: mensagem = conexao_chat_server.recv(BUFF_SIZE).decode("utf8")
+    try: mensagem = CONEXAO.recv(BUFF_SIZE).decode("utf8")
     except OSError: break
-    print(mensagem)
+    CHAT.config(state=tk.NORMAL)
+    CHAT.insert(tk.END, mensagem + '\n')
+    CHAT.see('end')
+    CHAT.config(state=tk.DISABLED)
 
-def send_message(mensagem_a_enviar, conexao_chat_server, evento = None):
-  conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
+def send_message(event = None):
+  CONEXAO.send(bytes(MENSAGEM.get(), "utf8"))
+  MENSAGEM.delete(0, 'end')
 
+def quit_chat():
+  CONEXAO.send(bytes("{quit}", "utf8"))
 
 def start_chat_user():
-  conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  # Soquete TCP
-  endereco_de_destino = (HOST, PORT)
-  # Tenta criar uma conexão com o servidor de destino
-  conexao_chat_server.connect(endereco_de_destino)
-  receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
-  receive_thread.start()
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != '{quit}':
-    send_message(mensagem_a_enviar, conexao_chat_server)
-    mensagem_a_enviar = input()
-  # Manda uma informando para o server que irá fechar a conexão
-  send_message(mensagem_a_enviar, conexao_chat_server)
-  conexao_chat_server.close()
+  start_gui()
+  ROOT.mainloop()
 
 start_chat_user()
-#start_cliente_udp()
