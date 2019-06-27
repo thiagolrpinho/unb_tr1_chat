@@ -50,7 +50,6 @@ def connect_to_server():
     time.sleep(.1)
     mensagem = CONEXAO.recv(BUFF_SIZE).decode("utf8")
     if mensagem != '':
-      print(mensagem)
       CHAT.config(state='normal')
       CHAT.insert('end', mensagem + '\n')
       CHAT.see('end')
