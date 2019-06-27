@@ -40,11 +40,11 @@ def connect_to_server():
         break
 
   if not EXIT:
-    CONEXAO.send(bytes(SALA.get(), "utf8"))
+    CONEXAO.send(bytes(SALA, "utf8"))
     mensagem = CONEXAO.recv(BUFF_SIZE).decode("utf8")
     if mensagem != '':
       print(mensagem)
-    CONEXAO.send(bytes(NOME.get(), "utf8"))
+    CONEXAO.send(bytes(NOME, "utf8"))
 
   print('Servidor diz: Conectado!\n')
 
@@ -83,9 +83,17 @@ def quit_chat():
   raise SystemExit
 
 def main():
+  global NOME, SALA
+  print('Digite seu nome:')
+  NOME = input()
+  print('Digite o número da sala:')
+  SALA = input()
   connect_to_server()
-
-  pass
+  receive_thread = Thread(target=receive_message, args=())
+  receive_thread.start()
+  print('Bem-Vindo! Para sair digite {quit}')
+  while True:
+    send_message(input())
 
 if __name__ == '__main__':
   main()
