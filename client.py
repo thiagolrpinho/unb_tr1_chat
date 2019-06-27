@@ -6,52 +6,94 @@
 import socket
 from threading import Thread
 
+MAX_SERVERS = 50
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP    # ENDEREÇO IP SERVIDOR
 PORT = 3300        # PORTA DO SERVIDOR(CLIENTE ENVIA)
+BUFF_SIZE = 1024
+DESTINO = (HOST, PORT)
 
-def start_cliente_udp():
-  socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  endereco_de_destino = (HOST, PORT)
-  print("Para sair envie uma mensagem com um espaço em branco")
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    socket_udp.sendto(bytes(mensagem_a_enviar, 'utf8'), endereco_de_destino)
-    mensagem_a_enviar = input()
-  socket_udp.close
+NOME = None
+SALA = None
 
-def start_cliente_tcp():
-  socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  endereco_de_destino = (HOST, PORT)
-  socket_tcp.connect(endereco_de_destino)
-  print("Para sair envie uma mensagem com um espaço em branco")
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    socket_tcp.send(bytes(mensagem_a_enviar, 'utf8'))
-    mensagem_a_enviar = input()
-  socket_tcp.close()
+CONEXAO = None
+EXIT = False
 
-def receive_message(conexao_chat_server):
-  while True:
-    mensagem = conexao_chat_server.recv(1024).decode("utf8")
-    print(mensagem)
+def connect_to_server():
+  global CONEXAO, EXIT, DESTINO
 
-def send_message(mensagem_a_enviar, conexao_chat_server, evento = None):
-  conexao_chat_server.send(bytes(mensagem_a_enviar, "utf8"))
-  if mensagem_a_enviar == " ":
-      conexao_chat_server.close()
+  try:
+    CONEXAO.close()
+  except:
+    pass
+  finally:
+    CONEXAO = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    EXIT = True
+    for i in range(MAX_SERVERS):
+      DESTINO = (HOST, PORT + i)
+      try:
+        CONEXAO.connect(DESTINO)
+      except:
+        pass
+      else:
+        EXIT = False
+        break
 
+  if not EXIT:
+    CONEXAO.send(bytes(SALA, "utf8"))
+    mensagem = CONEXAO.recv(BUFF_SIZE).decode("utf8")
+    if mensagem != '':
+      print(mensagem)
+    CONEXAO.send(bytes(NOME, "utf8"))
 
-def start_chat_user():
-  conexao_chat_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  endereco_de_destino = (HOST, PORT)
-  conexao_chat_server.connect(endereco_de_destino)
-  receive_thread = Thread(target=receive_message, args=(conexao_chat_server,))
+  print('Servidor diz: Conectado!\n')
+
+def receive_message():
+  global EXIT, DESTINO
+
+  while not EXIT:
+    mensagem = CONEXAO.recv(BUFF_SIZE).decode("utf8")
+    if mensagem != '':
+      print(mensagem)
+    else:
+      connect_to_server()
+
+  print('Servidor diz: Desconectado!\n')
+
+def send_message(mensagem):
+  if mensagem == '{quit}':
+    quit_chat()
+  else:
+    try:
+      CONEXAO.send(bytes(mensagem, "utf8"))
+    except:
+      if EXIT:
+        raise SystemExit
+
+def quit_chat():
+  global EXIT
+
+  try:
+    CONEXAO.send(bytes("{quit}", "utf8"))
+    CONEXAO.close()
+  except:
+    pass
+
+  EXIT = True
+  raise SystemExit
+
+def main():
+  global NOME, SALA
+  print('Digite seu nome:')
+  NOME = input()
+  print('Digite o número da sala:')
+  SALA = input()
+  connect_to_server()
+  receive_thread = Thread(target=receive_message, args=())
   receive_thread.start()
-  mensagem_a_enviar = input()
-  while mensagem_a_enviar != ' ':
-    send_message(mensagem_a_enviar, conexao_chat_server)
-    mensagem_a_enviar = input()
+  print('Bem-Vindo! Para sair digite {quit}')
+  while True:
+    send_message(input())
 
-start_chat_user()
-#start_cliente_udp()
+if __name__ == '__main__':
+  main()
