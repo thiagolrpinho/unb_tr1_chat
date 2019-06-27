@@ -5,7 +5,6 @@
 # É uma biblioteca python voltada para a interface de soquetes(TCP/UDP).
 import socket
 from threading import Thread
-import time
 
 LOCAL_IP = '127.0.0.1'
 HOST = LOCAL_IP   # ENDEREÇO IP DO HOST
